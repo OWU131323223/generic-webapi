@@ -9,6 +9,16 @@
 .quiz-results {
     display: none;
 }
+.h2 { 
+    margin: 0 0 10px 0; 
+    font-size: 1.8em; 
+    font-weight: 800;
+    letter-spacing: 2px;
+    background: linear-gradient(to right, #fff, #59848d);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+}
 
 .quiz-progress {
     text-align: center;
@@ -126,3 +136,4 @@
         font-size: 20px;
     }
 }
+

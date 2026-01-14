@@ -2,240 +2,267 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Quiz Generator</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="quiz.css">
+    <title>キモチのカタチ - AI Emotion Visualizer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <style>
+        /* --- CSS: スタイル設定 --- */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #050a0f;
+            color: #e0e6ed;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        /* UIコンテナ：画面左側に配置 */
+        .quiz-setup, .quiz-playing, .quiz-results {
+            position: absolute;
+            top: 50%;
+            left: 40px;
+            transform: translateY(-50%);
+            z-index: 10;
+            width: 90%;
+            max-width: 380px;
+            background: rgba(10, 20, 30, 0.7);
+            backdrop-filter: blur(12px);
+            padding: 30px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 10px 0 40px rgba(0, 0, 0, 0.5);
+            display: none;
+        }
+
+        /* 初期表示 */
+        .quiz-setup { display: block; }
+
+        h2 { 
+            margin: 0 0 10px 0; 
+            font-size: 1.8em; 
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #ffffff 0%, #59848d 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(89, 132, 141, 0.3);
+        }
+
+        p { font-size: 0.9em; color: #a0aec0; margin-bottom: 20px; line-height: 1.5; }
+
+        /* 入力エリアのスタイリッシュな枠 */
+        .input-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 10px;
+            margin-top: 20px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.4s ease;
+        }
+
+        .input-container:focus-within {
+            border-color: #59848d;
+            box-shadow: 0 0 15px rgba(89, 132, 141, 0.3);
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            padding: 15px;
+            font-size: 16px;
+            line-height: 1.6;
+            resize: none;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        /* ボタンの装飾 */
+        .button-wrapper {
+            display: flex;
+            justify-content: flex-end;
+            padding: 5px;
+        }
+
+        button {
+            position: relative;
+            background: #59848d;
+            color: #fff;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #74a1aa;
+            transform: translateY(-2px);
+        }
+
+        #result-label {
+            margin-top: 20px;
+            text-align: center;
+            font-weight: bold;
+            color: #00d4ff;
+            min-height: 1.2em;
+        }
+
+        /* モバイル対応 */
+        @media (max-width: 768px) {
+            .quiz-setup {
+                left: 50%;
+                top: auto;
+                bottom: 30px;
+                transform: translateX(-50%);
+                width: 85%;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>ITパスポート対策クイズ</h1>
-        </div>
 
-        <div class="quiz-container">
-            <!-- クイズ設定画面 -->
-            <div class="quiz-setup" id="quizSetup">
-                <div class="form-group">
-                    <label for="quizTitle">クイズのタイトル:</label>
-                    <input type="text" id="quizTitle" placeholder="例: ITパスポート対策クイズ" value="ITパスポート対策クイズ">
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="questionCount">問題数:</label>
-                        <input type="number" id="questionCount" min="1" max="20" value="5">
-                    </div>
-                    
-                    <div class="form-group">
-                        <button class="btn" onclick="generateQuiz()">クイズを生成</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- クイズ実行画面 -->
-            <div class="quiz-playing" id="quizPlaying">
-                <div class="quiz-progress" id="quizProgress"></div>
-                <h2 id="quizTitleDisplay"></h2>
-                
-                <div class="question" id="currentQuestion"></div>
-                
-                <ul class="selections" id="selections"></ul>
-                
-                <div class="answer-feedback" id="answerFeedback"></div>
-                
-                <button class="btn" id="nextBtn" onclick="nextQuestion()" style="display: none;">次の問題</button>
-                <button class="btn" id="finishBtn" onclick="showResults()" style="display: none;">結果を見る</button>
-            </div>
-
-            <!-- 結果画面 -->
-            <div class="quiz-results" id="quizResults">
-                <h2>クイズ結果</h2>
-                <div class="score" id="finalScore"></div>
-                <button class="btn" onclick="restartQuiz()">新しいクイズを作成</button>
+    <div class="quiz-setup">
+        <h2>キモチのカタチ</h2>
+        <p>今のあなたの心の状態を教えてください。AIがそれを解析し、独自の3D形状を生成します。</p>
+        
+        <div class="input-container">
+            <textarea id="userInput" placeholder="今の気分や、心に浮かぶ情景を言葉にしてみて…"></textarea>
+            <div class="button-wrapper">
+                <button onclick="startAnalysis()">解析を実行</button>
             </div>
         </div>
-
-        <div class="status" id="status">Ready</div>
-        <div class="loading" id="loading">クイズを生成中...</div>
+        
+        <div id="result-label">待機中...</div>
     </div>
 
     <script>
-        let quizData = [];
-        let currentQuestionIndex = 0;
-        let score = 0;
-        let selectedAnswer = null;
-        let hasAnswered = false;
+        /* --- JS: ロジック設定 --- */
+        let artData = { 
+            color: [89, 132, 141], 
+            speed: 0.01, 
+            sphereDetail: 20, 
+            deformIntensity: 0.5, 
+            shapeType: 'bloom',
+            emotionLabel: 'あなたの心を待っています' 
+        };
+        let mouseActivity = 0;
 
-        // 初期化
-        document.addEventListener('DOMContentLoaded', function() {
-            updateStatus();
-        });
-
-        // ステータス更新
-        function updateStatus() {
-            const statusEl = document.getElementById('status');
-            statusEl.textContent = 'Ready to generate ITパスポート quiz';
-            statusEl.style.color = '#28a745';
+        function setup() {
+            createCanvas(windowWidth, windowHeight, WEBGL);
         }
 
-        // クイズ生成
-        async function generateQuiz() {
-            const title = document.getElementById('quizTitle').value.trim();
-            const count = parseInt(document.getElementById('questionCount').value);
+        function draw() {
+            background(5, 10, 15);
+            
+            // UIが左にあるので、オブジェクトを右にオフセット
+            let offsetX = width > 768 ? 180 : 0;
+            let offsetY = width > 768 ? 0 : -100; // スマホ時は上にずらす
+            translate(offsetX, offsetY, 0);
 
-            if (!title || count < 1) {
-                alert('すべての項目を正しく入力してください');
-                return;
+            // マウスの激しさ計測
+            let d = dist(mouseX, mouseY, pmouseX, pmouseY);
+            mouseActivity = lerp(mouseActivity, d, 0.05);
+            
+            // ライト
+            ambientLight(50);
+            pointLight(255, 255, 255, 200, -200, 400);
+
+            // 回転
+            rotateX(frameCount * artData.speed);
+            rotateY(frameCount * artData.speed * 0.75);
+            
+            stroke(artData.color[0], artData.color[1], artData.color[2]);
+            strokeWeight(1.2);
+            noFill();
+
+            let detail = floor(constrain(artData.sphereDetail, 10, 45));
+            
+            for (let i = 0; i < detail; i++) {
+                beginShape(LINE_STRIP);
+                for (let j = 0; j <= detail; j++) {
+                    let lat = map(i, 0, detail, 0, PI);
+                    let lon = map(j, 0, detail, 0, TWO_PI);
+                    
+                    let r = 220;
+                    let noiseVal = noise(i * 0.2, j * 0.2, frameCount * 0.015);
+
+                    // 形の変化ロジック
+                    // draw関数内のif文の中を少し強化
+                    if (artData.shapeType === 'crystal') {
+                        // 鋭さを強調 (powを使ってノイズを尖らせる)
+                        r += pow(noiseVal, 4) * artData.deformIntensity * 300; 
+                    } else if (artData.shapeType === 'fluid') {
+                        // 波打ちを強調 (sinの周期を速くする)
+                        r += sin(lat * 5 + frameCount * 0.1) * artData.deformIntensity * 60;
+                    } else if (artData.shapeType === 'torus') {
+                        // 輪の形をハッキリさせる
+                        r = 140 + 100 * sin(lat * 2);
+                    }
+
+                    let x = r * sin(lat) * cos(lon);
+                    let y = r * sin(lat) * sin(lon);
+                    let z = r * cos(lat);
+                    vertex(x, y, z);
+                }
+                endShape();
             }
+        }
 
-            document.getElementById('loading').classList.add('show');
+        async function startAnalysis() {
+            const text = document.getElementById('userInput').value;
+            const label = document.getElementById('result-label');
+            
+            if (!text) return;
+            label.innerText = "解析中...";
+
+            const level = floor(constrain(mouseActivity * 2, 0, 100));
 
             try {
                 const response = await fetch('/api/', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        title: title,
-                        count: count
+                        userInput: text,
+                        interactionLevel: level
                     })
                 });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'API error');
-                }
-
-                const data = await response.json();
-                quizData = data.data;
-                console.log(data);
-
-
-                if (!Array.isArray(quizData) || quizData.length === 0) {
-                    console.log(quizData);
-                    throw new Error('Invalid quiz data format');
-                }
-
-                currentQuestionIndex = 0;
-                score = 0;
-                document.getElementById('quizTitleDisplay').textContent = data.title;
-                startQuiz();
                 
-            } catch (error) {
-                console.error('Error:', error);
-                alert('クイズの生成に失敗しました: ' + error.message);
-            } finally {
-                document.getElementById('loading').classList.remove('show');
-            }
-        }
+                const result = await response.json();
+                console.log("AIが返したデータ:", result.data[0]); // ←これを確認！
 
-        // クイズ開始
-        function startQuiz() {
-            document.getElementById('quizSetup').style.display = 'none';
-            document.getElementById('quizPlaying').style.display = 'block';
-            document.getElementById('quizResults').style.display = 'none';
-            showQuestion();
-        }
+                if (result.data && result.data[0]) {
+                    const raw = result.data[0];
+                    
+                    // AIからのデータをログに出力（デバッグ用）
+                    console.log("AIから届いた生の形データ:", raw.shapeType);
 
-        // 問題表示
-        function showQuestion() {
-            if (currentQuestionIndex >= quizData.length) {
-                showResults();
-                return;
-            }
-
-            const question = quizData[currentQuestionIndex];
-            hasAnswered = false;
-            selectedAnswer = null;
-
-            document.getElementById('quizProgress').textContent = 
-                `問題 ${currentQuestionIndex + 1} / ${quizData.length}`;
-            
-            document.getElementById('currentQuestion').textContent = question.question;
-            
-            const selectionsEl = document.getElementById('selections');
-            selectionsEl.innerHTML = '';
-            
-            question.selections.forEach((selection, index) => {
-                const li = document.createElement('li');
-                li.className = 'selection-item';
-                li.textContent = selection;
-                li.onclick = () => selectAnswer(index);
-                selectionsEl.appendChild(li);
-            });
-
-            document.getElementById('answerFeedback').style.display = 'none';
-            document.getElementById('nextBtn').style.display = 'none';
-            document.getElementById('finishBtn').style.display = 'none';
-        }
-
-        // 答え選択
-        function selectAnswer(index) {
-            if (hasAnswered) return;
-
-            selectedAnswer = index;
-            hasAnswered = true;
-
-            const question = quizData[currentQuestionIndex];
-            const correctAnswer = question.answer;
-            const isCorrect = selectedAnswer === correctAnswer;
-
-            if (isCorrect) {
-                score++;
-            }
-
-            const selectionItems = document.querySelectorAll('.selection-item');
-            selectionItems.forEach((item, i) => {
-                item.onclick = null;
-                if (i === correctAnswer) {
-                    item.classList.add('correct');
-                } else if (i === selectedAnswer && !isCorrect) {
-                    item.classList.add('incorrect');
+                    artData = {
+                        color: Array.isArray(raw.color) ? raw.color.map(Number) : [255, 255, 255],
+                        speed: Number(raw.speed) || 0.01,
+                        sphereDetail: Number(raw.sphereDetail) || 20,
+                        deformIntensity: Number(raw.deformIntensity) || 0.5,
+                        // ここを強化：文字列を掃除して小文字に統一
+                        shapeType: raw.shapeType ? String(raw.shapeType).trim().toLowerCase() : 'bloom',
+                        emotionLabel: raw.emotionLabel || "解析完了"
+                    };
+                    label.innerText = "診断結果： " + artData.emotionLabel;
+                } else {
+                    label.innerText = "エラーが発生しました";
                 }
-            });
-
-            const feedback = document.getElementById('answerFeedback');
-            feedback.style.display = 'block';
-            if (isCorrect) {
-                feedback.className = 'answer-feedback correct';
-                feedback.textContent = '正解！';
-            } else {
-                feedback.className = 'answer-feedback incorrect';
-                feedback.textContent = `不正解。正解は「${question.selections[correctAnswer]}」です。`;
-            }
-
-            if (currentQuestionIndex < quizData.length - 1) {
-                document.getElementById('nextBtn').style.display = 'inline-block';
-            } else {
-                document.getElementById('finishBtn').style.display = 'inline-block';
+               
+                            } catch (err) {
+                label.innerText = "エラーが発生しました";
+                console.error(err);
             }
         }
 
-        // 次の問題
-        function nextQuestion() {
-            currentQuestionIndex++;
-            showQuestion();
-        }
-
-        // 結果表示
-        function showResults() {
-            document.getElementById('quizPlaying').style.display = 'none';
-            document.getElementById('quizResults').style.display = 'block';
-            
-            const percentage = Math.round((score / quizData.length) * 100);
-            document.getElementById('finalScore').textContent = 
-                `${score} / ${quizData.length} 問正解 (${percentage}%)`;
-        }
-
-        // クイズリスタート
-        function restartQuiz() {
-            document.getElementById('quizResults').style.display = 'none';
-            document.getElementById('quizSetup').style.display = 'block';
-            quizData = [];
-            currentQuestionIndex = 0;
-            score = 0;
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
         }
     </script>
 </body>
