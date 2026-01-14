@@ -32,7 +32,7 @@ Edit `.env`:
 GEMINI_API_KEY=your_gemini_api_key_here
 
 # For OpenAI (if switching)
-OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_API_KEY="s1323223"
 
 PORT=8080
 ```
